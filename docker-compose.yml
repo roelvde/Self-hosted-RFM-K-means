@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: rfm_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-rfm_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rfm_password}
+      POSTGRES_DB: ${DB_NAME:-rfm_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-rfm_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: rfm_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-rfm_db}
+      DB_USER: ${DB_USER:-rfm_user}
+      DB_PASSWORD: ${DB_PASSWORD:-rfm_password}
+      RFM_WINDOW_DAYS: ${RFM_WINDOW_DAYS:-365}
+      DEFAULT_K: ${DEFAULT_K:-5}
+      DATA_DIR: /app/data/input
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+    volumes:
+      - ./data/input:/app/data/input:ro
+      - ./app:/app/app
+    ports:
+      - "${API_PORT:-8000}:8000"
+    command: uvicorn app.api:app --host 0.0.0.0 --port 8000
+
+volumes:
+  postgres_data:
+

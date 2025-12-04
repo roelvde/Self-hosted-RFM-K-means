@@ -44,7 +44,7 @@ Create a `.env` file in the project root (or use environment variables):
 ```bash
 # Database Configuration
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=55432
 DB_NAME=rfm_db
 DB_USER=rfm_user
 DB_PASSWORD=rfm_password
@@ -55,7 +55,7 @@ DEFAULT_K=5
 DATA_DIR=./data/input
 
 # API Configuration
-API_PORT=8000
+API_PORT=8701
 ```
 
 ### 3. Start Services
@@ -69,7 +69,7 @@ This will:
 - Start the FastAPI application
 - Create necessary database tables automatically
 
-The API will be available at `http://localhost:8000`
+The API will be available at `http://localhost:8701`
 
 ### 4. Prepare Data
 
@@ -95,7 +95,7 @@ O003,C002,2023-06-15,50.00,EUR,completed
 #### Option A: Via API
 
 ```bash
-curl -X POST "http://localhost:8000/pipeline/run" \
+curl -X POST "http://localhost:8701/pipeline/run" \
   -H "Content-Type: application/json" \
   -d '{
     "calc_date": "2024-01-15T00:00:00",
@@ -112,13 +112,13 @@ docker-compose exec app python -m app.pipeline.run_full
 
 ### 6. View Results
 
-- **Dashboard**: Open `http://localhost:8000/dashboard` in your browser (includes visualizations!)
-- **API Docs**: Open `http://localhost:8000/docs` for interactive API documentation
-- **Health Check**: `http://localhost:8000/health`
+- **Dashboard**: Open `http://localhost:8701/dashboard` in your browser (includes visualizations!)
+- **API Docs**: Open `http://localhost:8701/docs` for interactive API documentation
+- **Health Check**: `http://localhost:8701/health`
 - **Visualizations**: 
-  - Static plots: `http://localhost:8000/visualization/plot?plot_type=frequency_monetary`
-  - Interactive 2D: `http://localhost:8000/visualization/interactive?plot_type=frequency_monetary`
-  - Interactive 3D: `http://localhost:8000/visualization/3d`
+  - Static plots: `http://localhost:8701/visualization/plot?plot_type=frequency_monetary`
+  - Interactive 2D: `http://localhost:8701/visualization/interactive?plot_type=frequency_monetary`
+  - Interactive 3D: `http://localhost:8701/visualization/3d`
 
 ## API Endpoints
 
@@ -200,7 +200,7 @@ docker run -d --name postgres \
   -e POSTGRES_USER=rfm_user \
   -e POSTGRES_PASSWORD=rfm_password \
   -e POSTGRES_DB=rfm_db \
-  -p 5432:5432 \
+  -p 55432:5432 \
   postgres:15-alpine
 ```
 
@@ -345,7 +345,7 @@ Use cron or a task scheduler to run the pipeline regularly:
 Or trigger via API using a cron job:
 
 ```bash
-0 2 * * 1 curl -X POST http://localhost:8000/pipeline/run
+0 2 * * 1 curl -X POST http://localhost:8701/pipeline/run
 ```
 
 ### Backup Database
@@ -367,6 +367,8 @@ docker-compose exec -T db psql -U rfm_user rfm_db < backup.sql
 - Check that PostgreSQL is running: `docker-compose ps`
 - Verify environment variables match docker-compose.yml
 - Check database logs: `docker-compose logs db`
+- If you see "database does not exist", recreate the database volume: `docker-compose down -v && docker-compose up --build`
+- Or create it manually: `docker-compose exec db psql -U rfm_user -d postgres -c "CREATE DATABASE rfm_db;"`
 
 ### Pipeline Errors
 
@@ -376,8 +378,9 @@ docker-compose exec -T db psql -U rfm_user rfm_db < backup.sql
 
 ### Port Conflicts
 
-- Change `API_PORT` in `.env` or `docker-compose.yml`
-- Change `DB_PORT` if 5432 is already in use
+- Default host ports: API `8701`, Postgres `55432`
+- Adjust `API_PORT` / `DB_PORT` in `.env` (affects docker-compose host bindings)
+- If you run a local Postgres on 5432, keeping `DB_PORT=55432` avoids conflicts
 
 ## License
 

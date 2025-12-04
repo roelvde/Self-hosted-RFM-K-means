@@ -17,9 +17,8 @@ COPY app/ ./app/
 # Create data directory for CSV ingestion
 RUN mkdir -p /app/data/input
 
-# Expose API port
-EXPOSE 8000
+# Expose API port (matches docker-compose/API_PORT)
+EXPOSE 8701
 
 # Run the API server
-CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
-
+CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8701"]

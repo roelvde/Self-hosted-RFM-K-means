@@ -11,9 +11,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_PORT:-55432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-rfm_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-rfm_user} -d ${DB_NAME:-rfm_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,13 +34,13 @@ services:
       DEFAULT_K: ${DEFAULT_K:-5}
       DATA_DIR: /app/data/input
       API_HOST: 0.0.0.0
-      API_PORT: 8000
+      API_PORT: 8701
     volumes:
       - ./data/input:/app/data/input:ro
       - ./app:/app/app
     ports:
-      - "${API_PORT:-8000}:8000"
-    command: uvicorn app.api:app --host 0.0.0.0 --port 8000
+      - "${API_PORT:-8701}:8701"
+    command: uvicorn app.api:app --host 0.0.0.0 --port 8701
 
 volumes:
   postgres_data:

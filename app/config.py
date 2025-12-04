@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     
     # API settings
     API_HOST: str = "0.0.0.0"
-    API_PORT: int = 8000
+    API_PORT: int = 8701
     
     @property
     def database_url(self) -> str:

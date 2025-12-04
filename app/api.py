@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse, HTMLResponse, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, text
 from typing import Optional, List
 from datetime import datetime
 import csv
@@ -19,7 +19,7 @@ from app.schemas import (
     RFMFeatureResponse,
     ClusterResponse
 )
-from app.models import Customer, RFMFeature, CustomerCluster
+from app.models import Customer, RFMFeature, CustomerCluster, Order
 from app.pipeline.run_full import run_full_pipeline
 from app.config import settings
 
@@ -34,15 +34,30 @@ async def startup_event():
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check(db: Session = Depends(get_db)):
-    """Health check endpoint."""
+    """Health check endpoint met basisstatistieken."""
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
+
+    # Basisstatistieken (best-effort; bij fouten vallen we terug op None)
+    latest_calc_date = db.query(func.max(CustomerCluster.calc_date)).scalar()
+    total_customers = db.query(func.count(Customer.id)).scalar()
+    total_orders = db.query(func.count(Order.id)).scalar()
+    total_clusters = db.query(func.count(CustomerCluster.id)).scalar()
     
-    return HealthResponse(status="ok", database=db_status)
+    # HealthResponse is bewust minimaal gehouden (status + database);
+    # we geven extra info terug als losse velden in de JSON-respons.
+    base = HealthResponse(status="ok", database=db_status)
+    return {
+        **base.model_dump(),
+        "latest_calc_date": latest_calc_date,
+        "total_customers": total_customers,
+        "total_orders": total_orders,
+        "total_clusters": total_clusters,
+    }
 
 
 @app.post("/pipeline/run", response_model=PipelineRunResponse)
@@ -293,9 +308,13 @@ async def export_segment(
 
 @app.get("/dashboard")
 async def dashboard(db: Session = Depends(get_db)):
-    """Simple HTML dashboard showing segment statistics."""
+    """Eenvoudig HTML-dashboard met kernstatistieken en segmentoverzicht."""
     # Get latest calc_date
     latest_calc = db.query(func.max(CustomerCluster.calc_date)).scalar()
+    total_customers = db.query(func.count(Customer.id)).scalar()
+    total_orders = db.query(func.count(Order.id)).scalar()
+    total_clusters = db.query(func.count(CustomerCluster.id)).scalar()
+
     if latest_calc is None:
         html = """
         <!DOCTYPE html>
@@ -304,10 +323,12 @@ async def dashboard(db: Session = Depends(get_db)):
         <body>
             <h1>RFM Segmentation Dashboard</h1>
             <p>No segments found. Please run the pipeline first.</p>
+            <p><strong>Total customers:</strong> %d</p>
+            <p><strong>Total orders:</strong> %d</p>
             <p><a href="/docs">API Documentation</a></p>
         </body>
         </html>
-        """
+        """ % (total_customers or 0, total_orders or 0)
         return HTMLResponse(content=html)
     
     # Get segment statistics
@@ -351,6 +372,11 @@ async def dashboard(db: Session = Depends(get_db)):
         <h1>RFM Segmentation Dashboard</h1>
         <div class="stats">
             <p><strong>Calculation Date:</strong> {latest_calc.strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p>
+                <strong>Total customers:</strong> {total_customers or 0} |
+                <strong>Total orders:</strong> {total_orders or 0} |
+                <strong>Total cluster assignments:</strong> {total_clusters or 0}
+            </p>
             <p>
                 <a href="/docs">API Documentation</a> | 
                 <a href="/health">Health Check</a> |

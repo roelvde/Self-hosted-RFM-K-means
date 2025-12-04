@@ -5,7 +5,7 @@ from typing import Optional
 from app.db import SessionLocal
 from app.config import settings
 from app import ingestion, rfm, clustering
-from app.models import RFMFeature, CustomerCluster
+from app.models import RFMFeature, CustomerCluster, Customer, Order
 
 
 def run_full_pipeline(
@@ -47,7 +47,16 @@ def run_full_pipeline(
         # Step 1: Ingest data
         try:
             ingestion_results = ingestion.ingest_all(db)
-            results['ingestion'] = ingestion_results
+
+            # Extra inzicht: totalen in de database na ingestie
+            total_customers = db.query(Customer).count()
+            total_orders = db.query(Order).count()
+
+            results['ingestion'] = {
+                **ingestion_results,
+                'customers_total_in_db': total_customers,
+                'orders_total_in_db': total_orders,
+            }
         except Exception as e:
             results['errors'].append(f"Ingestion error: {str(e)}")
             results['ingestion'] = {'error': str(e)}

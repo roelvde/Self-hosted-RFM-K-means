@@ -23,7 +23,7 @@ A self-hosted, Dockerized MVP for customer segmentation using RFM (Recency, Freq
 - **ML**: scikit-learn
 - **Containerization**: Docker + Docker Compose
 
-## Quick Start
+## Quick Start (aanbevolen: Docker)
 
 ### Prerequisites
 
@@ -39,7 +39,20 @@ cd rfm
 
 ### 2. Configure Environment
 
-Create a `.env` file in the project root (or use environment variables):
+Je kunt de omgeving handmatig instellen of de meegeleverde `setup.sh` gebruiken.
+
+**Optie A (aanbevolen): automatisch via setup-script (Linux/macOS of Windows met WSL/Git Bash):**
+
+```bash
+bash setup.sh
+```
+
+Dit script:
+- maakt `data/input/` aan;
+- kopieert voorbeeldbestanden naar `data/input/customers.csv` en `data/input/orders.csv` als ze nog niet bestaan;
+- maakt een `.env` met veilige standaardwaarden als die nog niet bestaat.
+
+**Optie B: handmatig `.env` aanmaken in de projectroot:**
 
 ```bash
 # Database Configuration
@@ -58,16 +71,16 @@ DATA_DIR=./data/input
 API_PORT=8701
 ```
 
-### 3. Start Services
+### 3. Start Services (Docker)
 
 ```bash
 docker-compose up --build
 ```
 
 This will:
-- Start PostgreSQL database
+- Start PostgreSQL database (met database `rfm_db`)
 - Start the FastAPI application
-- Create necessary database tables automatically
+- Create necessary database tables automatically via `init_db()` bij app-startup
 
 The API will be available at `http://localhost:8701`
 
@@ -115,6 +128,9 @@ docker-compose exec app python -m app.pipeline.run_full
 - **Dashboard**: Open `http://localhost:8701/dashboard` in your browser (includes visualizations!)
 - **API Docs**: Open `http://localhost:8701/docs` for interactive API documentation
 - **Health Check**: `http://localhost:8701/health`
+  - Toont naast `status` en `database` ook:
+    - `latest_calc_date`: laatste pipeline-run;
+    - `total_customers`, `total_orders`, `total_clusters`.
 - **Visualizations**: 
   - Static plots: `http://localhost:8701/visualization/plot?plot_type=frequency_monetary`
   - Interactive 2D: `http://localhost:8701/visualization/interactive?plot_type=frequency_monetary`
@@ -229,6 +245,12 @@ python -m app.pipeline.run_full
 ```bash
 pytest tests/
 ```
+
+> Tip: draai tests bij voorkeur binnen de Docker-container, zodat alle dependencies uit `requirements.txt` beschikbaar zijn:
+>
+> ```bash
+> docker-compose exec app pytest
+> ```
 
 ## Project Structure
 

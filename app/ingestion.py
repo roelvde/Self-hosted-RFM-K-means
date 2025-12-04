@@ -43,7 +43,7 @@ def ingest_customers_from_csv(db: Session, csv_path: Optional[str] = None) -> in
         csv_path: Path to CSV file. If None, uses settings.DATA_DIR/customers.csv
     
     Returns:
-        Number of customers ingested/updated
+        Number of NEW customers inserted (bestaande klanten worden alleen geüpdatet)
     """
     if csv_path is None:
         csv_path = os.path.join(settings.DATA_DIR, "customers.csv")
@@ -107,7 +107,7 @@ def ingest_orders_from_csv(db: Session, csv_path: Optional[str] = None) -> int:
         csv_path: Path to CSV file. If None, uses settings.DATA_DIR/orders.csv
     
     Returns:
-        Number of orders ingested/updated
+        Number of NEW orders inserted (bestaande orders worden alleen geüpdatet)
     """
     if csv_path is None:
         csv_path = os.path.join(settings.DATA_DIR, "orders.csv")
@@ -179,7 +179,8 @@ def ingest_all(db: Session) -> dict:
     results = {
         'customers_ingested': 0,
         'orders_ingested': 0,
-        'errors': []
+        'errors': [],
+        # Extra feedbackvelden worden in de pipeline aangevuld (totalen in DB, updates, etc.)
     }
     
     try:
